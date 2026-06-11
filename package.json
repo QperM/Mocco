@@ -1,0 +1,9 @@
+{
+  "name": "mocco",
+  "private": true,
+  "scripts": {
+    "start": "npm run start --prefix apps/mobile",
+    "web": "npm run web --prefix apps/mobile",
+    "android": "npm run android --prefix apps/mobile"
+  }
+}

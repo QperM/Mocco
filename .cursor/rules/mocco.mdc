@@ -1,0 +1,35 @@
+---
+description: Mocco 萌宠社交 App 开发约定
+globs: apps/mobile/**/*
+alwaysApply: false
+---
+
+# Mocco 开发规范
+
+## 技术栈
+- Expo SDK 56 + Expo Router + TypeScript
+- Supabase 后端（Auth / PostgreSQL / Storage / Realtime）
+- Zustand 状态管理
+- 目标平台：Web 预览 + Android
+
+## 代码风格
+- 函数式组件 + hooks
+- 路径别名 `@/` 指向 `apps/mobile/`
+- 样式用 StyleSheet.create，颜色从 `@/constants/Colors` 取
+- API 调用走 `@/lib/supabase.ts`，不在页面里直接 fetch Supabase
+
+## 目录约定
+- `app/` — Expo Router 页面
+- `components/` — 可复用 UI 组件
+- `lib/` — 工具、Supabase 客户端、类型
+- `stores/` — Zustand store
+
+## 产品约定
+- 当前阶段：2D 萌宠头像（非 3D）
+- 用户默认匿名，显示萌宠皮套 + 匿名昵称
+- 未配置 Supabase 时支持本地预览模式
+
+## 禁止
+- 不要引入 3D 相关库（three.js 等），除非明确要求升级
+- 不要硬编码 Supabase 密钥
+- 不要修改 `supabase/migrations/` 已有迁移，新增变更用新 migration 文件

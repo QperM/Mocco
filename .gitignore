@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+web-build/
+.env
+.env.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+.DS_Store
+Thumbs.db
+
+# 本地克隆的研究用仓库，不纳入 Mocco 主项目
+AudioLDM2/
