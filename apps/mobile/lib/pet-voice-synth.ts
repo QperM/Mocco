@@ -1,12 +1,32 @@
 /**
- * 程序化合成拟真猫叫 / 狗叫（非 TTS 读文字）
- * Web 用 AudioContext，原生用 expo-av 播放生成的 WAV
+ * 程序化合成拟真猫叫 / 狗叫
+ * Web：AudioContext（不依赖原生模块）
+ * 原生：按需加载 expo-av
  */
 
-import { Audio } from 'expo-av';
 import { Platform } from 'react-native';
 
 const SAMPLE_RATE = 22050;
+
+type ExpoSound = {
+  stopAsync(): Promise<void>;
+  unloadAsync(): Promise<void>;
+  setOnPlaybackStatusUpdate(
+    callback: (status: { isLoaded?: boolean; didJustFinish?: boolean }) => void,
+  ): void;
+};
+
+type ExpoAudioModule = {
+  Audio: {
+    setAudioModeAsync(options: Record<string, boolean>): Promise<void>;
+    Sound: {
+      createAsync(
+        source: { uri: string },
+        initialStatus?: { shouldPlay?: boolean; volume?: number },
+      ): Promise<{ sound: ExpoSound }>;
+    };
+  };
+};
 
 function mulberry32(seed: number): () => number {
   return () => {
@@ -22,7 +42,6 @@ function noiseSample(rng: () => number): number {
   return (rng() - 0.5) * 2;
 }
 
-/** 生成一段喵叫波形：音高下滑 + 泛音 + 气息噪声 */
 export function synthesizeMeowSamples(variation = Math.random()): Float32Array {
   const rng = mulberry32(Math.floor(variation * 1e9));
   const duration = 0.22 + rng() * 0.28;
@@ -37,44 +56,35 @@ export function synthesizeMeowSamples(variation = Math.random()): Float32Array {
   for (let i = 0; i < length; i++) {
     const progress = i / length;
     const t = i / SAMPLE_RATE;
-
-    // 喵叫特征：音高从高滑到低
     const freq = startFreq + (endFreq - startFreq) * Math.pow(progress, 0.7);
     const vibrato = 1 + Math.sin(t * 28) * 0.03 * (1 - progress);
 
     phase += (2 * Math.PI * freq * vibrato) / SAMPLE_RATE;
     phase2 += (2 * Math.PI * freq * 1.85 * vibrato) / SAMPLE_RATE;
 
-    // 包络：快起、中段保持、尾部衰减
     const attack = Math.min(1, progress * 18);
     const decay = Math.pow(1 - progress, 1.6);
     const env = attack * decay;
 
     const tone = Math.sin(phase) * 0.55 + Math.sin(phase2) * 0.18;
     const breath = noiseSample(rng) * 0.12 * env * (0.4 + progress);
-    const sample = (tone + breath) * env * 0.85;
-
-    samples[i] = Math.max(-1, Math.min(1, sample));
+    samples[i] = Math.max(-1, Math.min(1, (tone + breath) * env * 0.85));
   }
 
   return samples;
 }
 
-/** 生成一段狗叫波形：低频短促脉冲 + 噪声 */
 export function synthesizeBarkSamples(variation = Math.random()): Float32Array {
   const rng = mulberry32(Math.floor(variation * 1e9) + 7);
   const duration = 0.1 + rng() * 0.14;
   const length = Math.floor(SAMPLE_RATE * duration);
   const samples = new Float32Array(length);
   let phase = 0;
-
   const baseFreq = 180 + rng() * 120;
 
   for (let i = 0; i < length; i++) {
     const progress = i / length;
     const t = i / SAMPLE_RATE;
-
-    // 狗叫：短促、低频、带锯齿感
     const freq = baseFreq * (1 - progress * 0.35);
     phase += (2 * Math.PI * freq) / SAMPLE_RATE;
 
@@ -86,21 +96,15 @@ export function synthesizeBarkSamples(variation = Math.random()): Float32Array {
     const sine = Math.sin(phase);
     const tone = sine * 0.45 + saw * 0.15;
     const noise = noiseSample(rng) * 0.35 * env;
-
-    // 双脉冲感（汪-呜）
     const pulse = 0.6 + 0.4 * Math.sin(t * 35) * Math.exp(-progress * 4);
 
-    const sample = (tone + noise) * env * pulse * 0.9;
-    samples[i] = Math.max(-1, Math.min(1, sample));
+    samples[i] = Math.max(-1, Math.min(1, (tone + noise) * env * pulse * 0.9));
   }
 
   return samples;
 }
 
 function toDataUri(samples: Float32Array): string {
-  const numChannels = 1;
-  const bitsPerSample = 16;
-  const sampleRate = SAMPLE_RATE;
   const dataSize = samples.length * 2;
   const buffer = new ArrayBuffer(44 + dataSize);
   const view = new DataView(buffer);
@@ -115,11 +119,11 @@ function toDataUri(samples: Float32Array): string {
   writeStr(12, 'fmt ');
   view.setUint32(16, 16, true);
   view.setUint16(20, 1, true);
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, (sampleRate * numChannels * bitsPerSample) / 8, true);
-  view.setUint16(32, (numChannels * bitsPerSample) / 8, true);
-  view.setUint16(34, bitsPerSample, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, SAMPLE_RATE, true);
+  view.setUint32(28, SAMPLE_RATE * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
   writeStr(36, 'data');
   view.setUint32(40, dataSize, true);
 
@@ -131,13 +135,6 @@ function toDataUri(samples: Float32Array): string {
   }
 
   const bytes = new Uint8Array(buffer);
-  if (typeof btoa !== 'undefined') {
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return `data:audio/wav;base64,${btoa(binary)}`;
-  }
-
-  // Hermes / RN fallback
   const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
   let result = '';
   for (let i = 0; i < bytes.length; i += 3) {
@@ -156,12 +153,17 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Web AudioContext 单例
 let webCtx: AudioContext | null = null;
 
 function getWebAudioContext(): AudioContext {
   if (!webCtx) {
-    webCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const Ctx =
+      typeof window !== 'undefined'
+        ? window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        : null;
+    if (!Ctx) throw new Error('Web Audio API 不可用');
+    webCtx = new Ctx();
   }
   return webCtx;
 }
@@ -175,10 +177,8 @@ async function playSamplesWeb(samples: Float32Array): Promise<void> {
 
   const source = ctx.createBufferSource();
   source.buffer = buffer;
-
   const gain = ctx.createGain();
   gain.gain.value = 0.9;
-
   source.connect(gain);
   gain.connect(ctx.destination);
   source.start();
@@ -188,9 +188,18 @@ async function playSamplesWeb(samples: Float32Array): Promise<void> {
   });
 }
 
-let nativeSound: Audio.Sound | null = null;
+let nativeSound: ExpoSound | null = null;
+let expoAvModule: ExpoAudioModule | null = null;
+
+async function getExpoAv(): Promise<ExpoAudioModule> {
+  if (!expoAvModule) {
+    expoAvModule = (await import('expo-av')) as unknown as ExpoAudioModule;
+  }
+  return expoAvModule;
+}
 
 async function playSamplesNative(samples: Float32Array): Promise<void> {
+  const { Audio } = await getExpoAv();
   const uri = toDataUri(samples);
 
   if (nativeSound) {
@@ -212,9 +221,7 @@ async function playSamplesNative(samples: Float32Array): Promise<void> {
 
   return new Promise((resolve) => {
     sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        resolve();
-      }
+      if (status.isLoaded && status.didJustFinish) resolve();
     });
   });
 }
@@ -238,7 +245,6 @@ export function stopPetVoice(): void {
   }
 }
 
-/** 连续播放多段随机合成的动物叫声 */
 export async function playPetVoiceSounds(isDog: boolean): Promise<void> {
   const generation = ++playGeneration;
   const burstCount = 2 + Math.floor(Math.random() * 4);

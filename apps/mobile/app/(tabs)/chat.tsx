@@ -36,7 +36,7 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={MOCK_CHATS.length ? styles.list : styles.emptyList}
         ListEmptyComponent={
-          <EmptyState emoji="💬" title="还没有聊天" subtitle="在广场认识新朋友，或通过破冰游戏开始对话" />
+          <EmptyState emoji="💬" title="还没有聊天" subtitle="在萌壳圈认识新朋友，或通过破冰游戏开始对话" />
         }
         renderItem={({ item }) => (
           <Pressable

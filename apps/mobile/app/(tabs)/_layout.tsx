@@ -36,8 +36,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="square"
         options={{
-          title: '广场',
-          tabBarIcon: () => <TabIcon emoji="🌸" />,
+          title: '萌壳圈',
+          tabBarIcon: () => <TabIcon emoji="🍩" />,
         }}
       />
       <Tabs.Screen

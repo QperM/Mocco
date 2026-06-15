@@ -50,7 +50,7 @@ export default function SquareScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => <PostCard post={item} />}
         ListEmptyComponent={
-          <EmptyState emoji="🌸" title="广场还没有动态" subtitle="成为第一个分享日常的人吧" />
+          <EmptyState emoji="🍩" title="萌壳圈还没有动态" subtitle="成为第一个分享日常的人吧" />
         }
       />
     </View>

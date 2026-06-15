@@ -1,10 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { generateLocalPetName } from '@/lib/anonymous-name';
 import { DEFAULT_PUBLIC_PROFILE } from '@/lib/default-pet';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
+import { appStorage, storageGetItem, storageSetItem } from '@/lib/storage';
 import type { PetStyle, Profile } from '@/lib/types';
 
 interface LocalProfile {
@@ -38,8 +38,12 @@ function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
 }
 
 async function loadLocalProfile(): Promise<LocalProfile> {
-  const raw = await AsyncStorage.getItem(LOCAL_PROFILE_KEY);
-  if (raw) return JSON.parse(raw) as LocalProfile;
+  try {
+    const raw = await storageGetItem(LOCAL_PROFILE_KEY);
+    if (raw) return JSON.parse(raw) as LocalProfile;
+  } catch {
+    // storage 不可用时回退默认资料
+  }
   return {
     ...DEFAULT_PUBLIC_PROFILE,
     anonymous_name: generateLocalPetName(),
@@ -102,7 +106,7 @@ export const useAuthStore = create<AuthState>()(
       updateLocalProfile: (updates) => {
         const current = get().profile as LocalProfile;
         const next = { ...current, ...updates };
-        AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(next));
+        storageSetItem(LOCAL_PROFILE_KEY, JSON.stringify(next)).catch(() => {});
         set({ profile: next, isLocalMode: true, userId: get().userId ?? 'local' });
       },
 
@@ -132,7 +136,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'mocco-auth',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => appStorage),
       partialize: (state) => ({
         userId: state.userId,
         isLocalMode: state.isLocalMode,

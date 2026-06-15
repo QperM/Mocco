@@ -73,7 +73,7 @@ export default function HomeScreen() {
       <View style={[styles.tipCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.tipTitle, { color: colors.text }]}>💡 匿名社交</Text>
         <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-          在广场和聊天中，大家只会看到你的萌宠皮套和匿名昵称，真实身份完全隐藏。
+          在萌壳圈和聊天中，大家只会看到你的萌宠皮套和匿名昵称，真实身份完全隐藏。
         </Text>
       </View>
     </View>
