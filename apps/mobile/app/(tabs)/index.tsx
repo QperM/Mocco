@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useEffect } from 'react';
 
 import LocalModeBanner from '@/components/LocalModeBanner';
 import PetAvatar from '@/components/PetAvatar';
@@ -14,11 +13,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { profile, initialize } = useAuthStore();
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
+  const { profile, isAuthenticated } = useAuthStore();
 
   const petStyle = (profile?.pet_style ?? 'cat') as PetStyle;
   const customAvatar = hasCustomAvatar(profile?.avatar_url);
@@ -26,6 +21,12 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LocalModeBanner />
+
+      {isAuthenticated ? (
+        <Pressable style={styles.settingsBtn} onPress={() => router.push('/settings')}>
+          <Text style={[styles.settingsText, { color: colors.tint }]}>⚙️ 设置</Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.hero}>
         {customAvatar ? (
@@ -40,11 +41,11 @@ export default function HomeScreen() {
 
         {customAvatar ? (
           <Text style={[styles.styleLabel, { color: colors.textSecondary }]}>
-            {PET_STYLE_LABEL[petStyle]}皮套 · 你的专属形象
+            {PET_STYLE_LABEL[petStyle]}萌壳 · 你的专属萌壳
           </Text>
         ) : (
           <Text style={[styles.guideText, { color: colors.textSecondary }]}>
-            这是大家的公共萌宠形象{'\n'}上传宠物照片，生成你的专属皮套吧
+            这是大家的公共萌壳{'\n'}上传宠物照片，生成你的专属萌壳吧
           </Text>
         )}
 
@@ -59,13 +60,13 @@ export default function HomeScreen() {
           onPress={() => router.push('/pet/create')}
         >
           <Text style={styles.primaryBtnText}>
-            {customAvatar ? '重新生成我的形象' : '创建我的萌宠形象'}
+            {customAvatar ? '重新生成我的萌壳' : '创建我的萌壳'}
           </Text>
         </Pressable>
 
         {!customAvatar ? (
           <Text style={[styles.actionHint, { color: colors.textSecondary }]}>
-            支持上传 1–3 张宠物照片，一键生成 2D 萌宠头像
+            支持上传 1–3 张宠物照片，一键生成 2D 萌壳
           </Text>
         ) : null}
       </View>
@@ -73,7 +74,7 @@ export default function HomeScreen() {
       <View style={[styles.tipCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.tipTitle, { color: colors.text }]}>💡 匿名社交</Text>
         <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-          在萌壳圈和聊天中，大家只会看到你的萌宠皮套和匿名昵称，真实身份完全隐藏。
+          在萌壳圈和消息里，大家只会看到你的萌壳和匿名昵称，真实身份完全隐藏。
         </Text>
       </View>
     </View>
@@ -83,6 +84,17 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  settingsBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    marginRight: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  settingsText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   hero: {
     alignItems: 'center',

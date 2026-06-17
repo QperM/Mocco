@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { uploadImageToBucket } from '@/lib/api/storage';
+import { saveAvatarFromUpload } from '@/lib/api/profiles';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { PetStyle } from '@/lib/types';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -43,7 +45,6 @@ export const usePetStore = create<PetCreationState>((set, get) => ({
     try {
       const authStore = useAuthStore.getState();
 
-      // 本地模式：直接使用首图作为头像
       if (!isSupabaseConfigured || authStore.isLocalMode) {
         const avatarUrl = selectedImages[0];
         authStore.updateLocalProfile({ avatar_url: avatarUrl, pet_style: petStyle });
@@ -59,14 +60,7 @@ export const usePetStore = create<PetCreationState>((set, get) => ({
         const uri = selectedImages[i];
         const path = `${userId}/${Date.now()}_${i}.jpg`;
 
-        const response = await fetch(uri);
-        const blob = await response.blob();
-
-        const { error } = await supabase.storage
-          .from('pet-uploads')
-          .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
-
-        if (error) throw error;
+        await uploadImageToBucket('pet-uploads', path, uri);
         uploadPaths.push(path);
 
         await supabase.from('pet_uploads').insert({
@@ -76,17 +70,28 @@ export const usePetStore = create<PetCreationState>((set, get) => ({
         });
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke('generate-pet', {
-        body: { upload_paths: uploadPaths, pet_style: petStyle },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
+      let avatarUrl: string | null = null;
 
-      if (res.error) throw res.error;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await supabase.functions.invoke('generate-pet', {
+          body: { upload_paths: uploadPaths, pet_style: petStyle },
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        });
+        if (!res.error && res.data?.avatar_url) {
+          avatarUrl = res.data.avatar_url as string;
+        }
+      } catch {
+        // Edge Function 未部署时使用客户端 fallback
+      }
+
+      if (!avatarUrl) {
+        avatarUrl = await saveAvatarFromUpload(userId, uploadPaths[0], petStyle);
+      }
 
       await authStore.refreshProfile();
       set({ isGenerating: false });
-      return res.data.avatar_url as string;
+      return avatarUrl;
     } catch (err) {
       set({ isGenerating: false });
       throw err;

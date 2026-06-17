@@ -1,58 +1,79 @@
-import { FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import EmptyState from '@/components/EmptyState';
 import LocalModeBanner from '@/components/LocalModeBanner';
 import PostCard from '@/components/PostCard';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import type { Post } from '@/lib/types';
+import { usePosts, useToggleLike } from '@/hooks/usePosts';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/useAuthStore';
 
-const MOCK_POSTS: Post[] = [
+const MOCK_POSTS = [
   {
-    id: '1',
+    id: 'mock-1',
     user_id: 'a',
     content: '今天阳光好好，带毛球出去晒晒太阳～',
-    images: [],
+    images: [] as string[],
     likes_count: 12,
     created_at: new Date().toISOString(),
-    profiles: { anonymous_name: '软萌#2847', avatar_url: null, pet_style: 'cat' },
-  },
-  {
-    id: '2',
-    user_id: 'b',
-    content: '有没有人想玩猜拳破冰？输了请对方喝虚拟奶茶 🧋',
-    images: [],
-    likes_count: 8,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    profiles: { anonymous_name: '团子#1092', avatar_url: null, pet_style: 'rabbit' },
-  },
-  {
-    id: '3',
-    user_id: 'c',
-    content: '刚生成了新皮套！大家觉得怎么样？',
-    images: [],
-    likes_count: 24,
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-    profiles: { anonymous_name: '元气#7731', avatar_url: null, pet_style: 'dog' },
+    profiles: { anonymous_name: '软萌#2847', avatar_url: null, pet_style: 'cat' as const },
+    liked_by_me: false,
   },
 ];
 
 export default function SquareScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const isLocalMode = useAuthStore((s) => s.isLocalMode);
+  const { data: posts, isLoading, isRefetching, refetch, error } = usePosts();
+  const toggleLike = useToggleLike();
+
+  const showMock = !isSupabaseConfigured || isLocalMode;
+  const listData = showMock ? MOCK_POSTS : (posts ?? []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LocalModeBanner />
-      <FlatList
-        data={MOCK_POSTS}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => <PostCard post={item} />}
-        ListEmptyComponent={
-          <EmptyState emoji="🍩" title="萌壳圈还没有动态" subtitle="成为第一个分享日常的人吧" />
-        }
-      />
+
+      {error && !showMock ? (
+        <View style={styles.errorWrap}>
+          <Text style={[styles.errorText, { color: colors.textSecondary }]}>
+            加载失败：{error.message}
+          </Text>
+        </View>
+      ) : null}
+
+      {isLoading && !showMock ? (
+        <ActivityIndicator style={styles.loader} color={colors.tint} />
+      ) : (
+        <FlatList
+          data={listData}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={listData.length ? styles.list : styles.emptyList}
+          refreshControl={
+            !showMock ? (
+              <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.tint} />
+            ) : undefined
+          }
+          renderItem={({ item }) => (
+            <PostCard
+              post={item}
+              liked={item.liked_by_me}
+              onLike={
+                showMock
+                  ? undefined
+                  : () => toggleLike.mutate({ postId: item.id, liked: Boolean(item.liked_by_me) })
+              }
+            />
+          )}
+          ListEmptyComponent={
+            !showMock ? (
+              <EmptyState emoji="🍩" title="萌壳圈还没有动态" subtitle="点底部发布按钮，分享第一条萌壳日常吧" />
+            ) : null
+          }
+        />
+      )}
     </View>
   );
 }
@@ -64,5 +85,18 @@ const styles = StyleSheet.create({
   list: {
     paddingTop: 12,
     paddingBottom: 24,
+  },
+  emptyList: {
+    flexGrow: 1,
+  },
+  loader: {
+    marginTop: 40,
+  },
+  errorWrap: {
+    padding: 16,
+  },
+  errorText: {
+    fontSize: 13,
+    textAlign: 'center',
   },
 });

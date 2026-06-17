@@ -1,86 +1,107 @@
-# Mocco — 萌宠皮套匿名社交
+# Mocco — 萌壳匿名社交
 
 基于 Expo (React Native) 的萌宠匿名社交 App，支持 **Web 实时预览** 和 **Android**。
 
 ## 快速开始
 
 ```bash
-# 安装依赖
 cd apps/mobile
 npm install
-
-# Web 预览（浏览器热更新）
-npm run web
-
-# Android 预览（需 Android 模拟器或真机）
-npm run android
-
-# 通用开发服务器（可选 w/a 快捷键）
-npm start
-```
-
-也可以在项目根目录：
-
-```bash
-npm run web
-npm run android
+npm run web      # 浏览器预览
+npm run android  # Android
 ```
 
 ## 功能概览
 
-| 模块 | 状态 |
+| 模块 | 数据 |
 |------|------|
-| 我的萌宠（2D 头像） | ✅ MVP |
-| 广场 | ✅ 静态演示 |
-| 聊天 | ✅ 静态演示 |
-| 破冰猜拳 | ✅ 单机演示 |
-| Supabase 同步 | 需配置 |
+| 小窝（萌壳） | Supabase profiles + Storage |
+| 萌壳圈 | Supabase posts + 点赞 |
+| 发布动态 | 写入 posts 表 |
+| 消息 | Supabase conversations + messages + Realtime |
+| 派对猜拳 | 本地 MVP |
 
-## Supabase 配置
+未配置 Supabase 时自动进入**本地预览模式**（萌壳圈显示演示数据）。
 
-1. 在 [supabase.com](https://supabase.com) 创建项目
-2. 复制 `apps/mobile/.env.example` 为 `apps/mobile/.env` 并填入密钥
-3. 执行数据库迁移：
+---
+
+## Supabase 配置（必做）
+
+### 1. 创建项目
+
+登录 [supabase.com](https://supabase.com) → New Project
+
+### 2. 启用匿名登录
+
+**Authentication → Providers → Anonymous Sign-Ins → Enable**
+
+### 3. 执行数据库 SQL
+
+打开 **SQL Editor**，依次执行：
+
+1. `supabase/migrations/001_initial.sql`
+2. `supabase/migrations/002_enhancements.sql`
+
+（002 会创建 Storage bucket、点赞触发器、消息预览字段等）
+
+### 4. 配置 App 环境变量
 
 ```bash
-npx supabase db push
+cd apps/mobile
+copy .env.example .env   # Windows
+# 填入 Project URL 和 anon public key
 ```
 
-4. 在 Storage 中创建两个 bucket（均设为 Public）：
-   - `pet-uploads` — 用户上传的原始照片
-   - `avatars` — 生成的 2D 头像
+重启 Expo：`npx expo start -c`
 
-5. 部署 Edge Function：
+### 5. （可选）部署 Edge Function
+
+萌壳头像生成可选部署 `generate-pet`；未部署时 App 会自动用客户端 fallback 保存头像。
 
 ```bash
+npx supabase login
+npx supabase link --project-ref <your-ref>
 npx supabase functions deploy generate-pet
 ```
 
-6. 在 Supabase Dashboard → Authentication → Providers 中启用 **Anonymous Sign-Ins**
+### 6. 验证
 
-未配置 Supabase 时，App 会以**本地预览模式**运行，头像和数据保存在本地。
+- 打开 App 顶部不应再显示「本地预览」横幅
+- 萌壳圈为空时可发布动态
+- 下拉刷新可看到新帖子
+- 消息页在有人发起会话后可收发（Realtime）
+
+---
+
+## 数据库表
+
+| 表 | 用途 |
+|----|------|
+| `profiles` | 匿名用户、萌壳头像 |
+| `posts` | 萌壳圈动态 |
+| `post_likes` | 点赞 |
+| `conversations` | 会话 |
+| `messages` | 消息（Realtime） |
+| `pet_uploads` | 上传记录 |
+
+Storage bucket：`pet-uploads`、`avatars`（迁移 002 自动创建）
+
+---
 
 ## 项目结构
 
 ```
 mocco/
-├── apps/mobile/          # Expo 主应用
-│   ├── app/              # 页面（Expo Router）
-│   ├── components/       # UI 组件
-│   ├── lib/              # Supabase、工具函数
-│   └── stores/           # Zustand 状态
-└── supabase/             # 数据库迁移 & Edge Functions
+├── apps/mobile/
+│   ├── app/           # 页面
+│   ├── lib/api/       # Supabase API
+│   ├── hooks/         # React Query hooks
+│   └── stores/        # Zustand
+└── supabase/
+    ├── migrations/    # SQL 迁移
+    └── functions/     # Edge Functions
 ```
 
 ## 技术栈
 
-- Expo SDK 56 + Expo Router
-- TypeScript
-- Supabase（Auth / DB / Storage / Realtime）
-- Zustand
-
-## 开发建议
-
-- **UI 调试**：优先用 `npm run web` 在浏览器里看效果
-- **原生能力**（相机、相册）：在 Android 真机/模拟器上测
-- **Cursor**：项目已包含 `.cursor/rules`，AI 会遵循项目约定
+Expo SDK 56 · Expo Router · TypeScript · Supabase · React Query · Zustand

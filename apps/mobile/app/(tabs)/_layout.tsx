@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
 
+import PublishTabButton from '@/components/PublishTabButton';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
@@ -21,6 +22,8 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
+          height: 60,
+          paddingBottom: 6,
         },
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
@@ -29,7 +32,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '我的萌宠',
+          title: '小窝',
           tabBarIcon: () => <TabIcon emoji="🏠" />,
         }}
       />
@@ -41,17 +44,31 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="publish"
         options={{
-          title: '聊天',
-          tabBarIcon: () => <TabIcon emoji="💬" />,
+          title: '',
+          tabBarLabel: () => null,
+          headerShown: false,
+          tabBarButton: () => <PublishTabButton />,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+          },
         }}
       />
       <Tabs.Screen
-        name="games"
+        name="party"
         options={{
-          title: '破冰',
-          tabBarIcon: () => <TabIcon emoji="🎮" />,
+          title: '派对',
+          tabBarIcon: () => <TabIcon emoji="🎉" />,
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: '消息',
+          tabBarIcon: () => <TabIcon emoji="💬" />,
         }}
       />
     </Tabs>

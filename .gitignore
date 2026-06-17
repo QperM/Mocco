@@ -13,5 +13,8 @@ web-build/
 .DS_Store
 Thumbs.db
 
+# Supabase CLI 本地缓存
+supabase/.temp/
+
 # 本地克隆的研究用仓库，不纳入 Mocco 主项目
 AudioLDM2/

@@ -57,11 +57,11 @@ export default function CreatePetScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '创建萌宠头像', presentation: 'modal' }} />
+      <Stack.Screen options={{ title: '创建萌壳', presentation: 'modal' }} />
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>上传照片（1–3 张）</Text>
         <Text style={[styles.sectionDesc, { color: colors.textSecondary }]}>
-          上传你的宠物照片，我们会生成 2D 萌宠皮套头像
+          上传你的宠物照片，我们会生成 2D 萌壳
         </Text>
 
         <View style={styles.imageGrid}>
@@ -118,7 +118,7 @@ export default function CreatePetScreen() {
           {isGenerating ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.generateBtnText}>生成萌宠头像</Text>
+            <Text style={styles.generateBtnText}>生成萌壳</Text>
           )}
         </Pressable>
       </ScrollView>

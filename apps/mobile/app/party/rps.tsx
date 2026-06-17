@@ -66,7 +66,7 @@ export default function RpsGameScreen() {
           <Text style={[styles.vs, { color: colors.textSecondary }]}>VS</Text>
           <Text style={[styles.score, { color: colors.text }]}>对方 {theirScore}</Text>
         </View>
-        <Text style={[styles.rule, { color: colors.textSecondary }]}>三局两胜 · 先赢 2 局即破冰成功</Text>
+        <Text style={[styles.rule, { color: colors.textSecondary }]}>三局两胜 · 派对猜拳对决</Text>
 
         {lastResult ? (
           <Text style={[styles.result, { color: colors.text }]}>{lastResult}</Text>
@@ -77,7 +77,7 @@ export default function RpsGameScreen() {
         {gameOver ? (
           <View style={[styles.winBanner, { backgroundColor: colors.tint }]}>
             <Text style={styles.winText}>
-              {myScore > theirScore ? '🎉 破冰成功！' : '😿 下次再来～'}
+              {myScore > theirScore ? '🎉 派对胜利！' : '😿 下次派对再来～'}
             </Text>
           </View>
         ) : (

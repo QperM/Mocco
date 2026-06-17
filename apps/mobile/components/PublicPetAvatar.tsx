@@ -9,7 +9,7 @@ interface PublicPetAvatarProps extends ViewProps {
   size?: number;
 }
 
-/** 公共 2D 萌宠占位形象，用于引导用户创建自己的皮套 */
+/** 公共 2D 萌壳占位，用于引导用户创建自己的萌壳 */
 export default function PublicPetAvatar({ petStyle = 'cat', size = 160, style, ...rest }: PublicPetAvatarProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -41,12 +41,12 @@ export default function PublicPetAvatar({ petStyle = 'cat', size = 160, style, .
         >
           <Text style={[styles.emoji, { fontSize: size * 0.38 }]}>{PET_STYLE_EMOJI[petStyle]}</Text>
           <View style={[styles.tag, { backgroundColor: colors.tint }]}>
-            <Text style={styles.tagText}>公共形象</Text>
+            <Text style={styles.tagText}>公共萌壳</Text>
           </View>
         </View>
       </View>
       <Text style={[styles.caption, { color: colors.textSecondary }]}>
-        {PET_STYLE_LABEL[petStyle]} · 默认萌宠
+        {PET_STYLE_LABEL[petStyle]} · 默认萌壳
       </Text>
     </View>
   );
